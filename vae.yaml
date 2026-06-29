@@ -1,0 +1,7 @@
+# configs/model/vae.yaml
+# Model hyperparameters for ConvVAE
+
+model:
+  model_type:   "vae"      # "ae" | "vae" | "patchcore"
+  latent_dim:   256
+  coreset_size: 2000       # PatchCore only — ignored for ae/vae

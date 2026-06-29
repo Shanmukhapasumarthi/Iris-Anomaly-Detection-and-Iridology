@@ -1,0 +1,26 @@
+# configs/training/default.yaml
+# Training and data configuration
+
+training:
+  epochs:        150
+  lr:            0.0001
+  weight_decay:  0.00001
+  warmup_epochs: 10
+  grad_clip:     1.0
+  alpha_mse:     0.5       # weight for MSE in reconstruction loss
+  beta_ssim:     0.5       # weight for SSIM in reconstruction loss
+  gamma_kl:      1.0       # weight for KL divergence (VAE only)
+  log_every:     10        # save reconstruction images every N epochs
+  seed:          42
+
+data:
+  raw_dir:        "data/raw"
+  processed_dir:  "data/processed"
+  normalized_dir: "data/normalized"
+  strip_h:        64
+  strip_w:        512
+  train_ratio:    0.80
+  val_ratio:      0.10
+  batch_size:     32
+  num_workers:    4
+  use_clahe:      true
