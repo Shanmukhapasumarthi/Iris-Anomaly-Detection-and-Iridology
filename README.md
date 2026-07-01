@@ -45,8 +45,10 @@ iris_anomaly/
 │   ├── prepare_data.py    stages 1–3 (EDA → seg → norm)
 │   ├── train.py           model training
 │   └── evaluate.py        metrics + plots
-└── api/
-    └── app.py             FastAPI inference server
+├── api/
+│   └── app.py             FastAPI inference server
+├── Dockerfile
+└── .dockerignore
 ```
 
 ---
@@ -92,12 +94,61 @@ python scripts/train.py --model vae --epochs 150
 python scripts/evaluate.py --model vae
 ```
 
-### 6. (Optional) Start API server
+### 6. Start API server (local)
 ```bash
 uvicorn api.app:app --host 0.0.0.0 --port 8000
 # Test:
 curl -X POST http://localhost:8000/predict -F "file=@iris.jpg"
 ```
+
+---
+
+## Running with Docker
+
+The API server can be containerized for a consistent, dependency-free deployment.
+
+### 1. Build the image
+```bash
+docker build -t iris-anomaly-api .
+```
+
+### 2. Run the container
+```bash
+docker run -d \
+  --name iris-anomaly-api \
+  -p 8000:8000 \
+  -v $(pwd)/checkpoints:/app/checkpoints \
+  iris-anomaly-api
+```
+- `-p 8000:8000` maps the container's port to your host.
+- `-v $(pwd)/checkpoints:/app/checkpoints` mounts your trained model weights into the container so you don't have to bake them into the image.
+- Add `--env-file .env` if `api/app.py` reads API keys (e.g. Anthropic API) from environment variables.
+
+### 3. Test the endpoint
+```bash
+curl -X POST http://localhost:8000/predict -F "file=@iris.jpg"
+```
+
+### 4. Stop / remove the container
+```bash
+docker stop iris-anomaly-api && docker rm iris-anomaly-api
+```
+
+### What's excluded from the image
+`.dockerignore` keeps the image lean by excluding virtual environments, `__pycache__`, git history, `.env` files, logs, and generated outputs/reports/raw datasets. This means:
+- **Model checkpoints and raw data are not baked into the image** — mount them as volumes at runtime (see above), or add explicit `COPY` steps in the `Dockerfile` if you want a self-contained image.
+- Rebuild the image after changing `requirements.txt`; code-only changes rebuild fast since dependency installation is cached in an earlier layer.
+
+### Dockerfile summary
+| Stage | Purpose |
+|-------|---------|
+| `python:3.11-slim` base | Minimal Python runtime |
+| `libgl1`, `libglib2.0-0` | OpenCV/image-processing system dependencies |
+| `pip install -r requirements.txt` | Cached as its own layer for faster rebuilds |
+| `COPY . .` | Copies application code (respecting `.dockerignore`) |
+| `EXPOSE 8000` + `CMD uvicorn ...` | Runs the FastAPI inference server |
+
+> **Note:** the current `Dockerfile` CMD points to `app:app`. If your FastAPI app lives at `api/app.py` (per the project structure above), update the CMD to `uvicorn api.app:app --host 0.0.0.0 --port 8000`, or add a top-level `app.py` that re-exports it.
 
 ---
 
