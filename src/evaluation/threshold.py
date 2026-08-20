@@ -1,9 +1,3 @@
-"""
-src/evaluation/threshold.py
-Adaptive threshold fitting on val-set (normal only) score distribution.
-No ground-truth labels needed — purely unsupervised.
-"""
-
 from typing import Tuple
 
 import numpy as np

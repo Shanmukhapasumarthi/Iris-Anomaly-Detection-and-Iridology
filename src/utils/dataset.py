@@ -1,14 +1,7 @@
-"""
-src/utils/dataset.py
-PyTorch Dataset for normalised iris strips.
-  - Lazy loading from .npy files
-  - CLAHE enhancement
-  - Optional albumentations augmentation
-  - build_dataloaders() factory returning train/val/test loaders
-"""
-
 import json
 import random
+import re
+from collections import defaultdict
 from pathlib import Path
 from typing import List, Optional, Tuple
 
@@ -17,12 +10,53 @@ import numpy as np
 import torch
 from torch.utils.data import Dataset, DataLoader
 
-from normalization import apply_clahe
-from augmentation  import get_train_transform, get_val_transform
+from src.preprocessing.normalization import apply_clahe
+from src.preprocessing.augmentation import get_train_transform, get_val_transform
 
 
 STRIP_H = 64
 STRIP_W = 512
+
+
+def _subject_id_from_record(record: dict) -> str:
+    """Return a subject identifier from the normalized strip filename.
+    Examples: 001L_1_norm.npy -> '001', 015R_2_norm.npy -> '015'.
+    """
+    strip_path = str(record.get("strip", ""))
+    stem = Path(strip_path).stem
+    match = re.search(r"(\d+)", stem)
+    if match:
+        return match.group(1)
+    return stem
+
+
+def subject_disjoint_split(records: List[dict],
+                          train_ratio: float = 0.80,
+                          val_ratio: float = 0.10,
+                          seed: int = 42) -> Tuple[List[dict], List[dict], List[dict]]:
+    """Split by subject ID so the same iris never leaks across train/val/test."""
+    grouped = defaultdict(list)
+    for record in records:
+        grouped[_subject_id_from_record(record)].append(record)
+
+    subject_ids = list(grouped.keys())
+    rng = random.Random(seed)
+    rng.shuffle(subject_ids)
+
+    n_subjects = len(subject_ids)
+    n_train = int(n_subjects * train_ratio)
+    n_val = int(n_subjects * val_ratio)
+    n_val = min(n_val, max(0, n_subjects - n_train))
+
+    train_ids = subject_ids[:n_train]
+    val_ids = subject_ids[n_train:n_train + n_val]
+    test_ids = subject_ids[n_train + n_val:]
+
+    train_recs = [r for sid in train_ids for r in grouped[sid]]
+    val_recs = [r for sid in val_ids for r in grouped[sid]]
+    test_recs = [r for sid in test_ids for r in grouped[sid]]
+
+    return train_recs, val_recs, test_recs
 
 
 class IrisStripDataset(Dataset):
@@ -48,7 +82,19 @@ class IrisStripDataset(Dataset):
         return len(self.records)
 
     def __getitem__(self, idx: int) -> torch.Tensor:
-        path  = Path(self.records[idx]["strip"])
+        path = Path(self.records[idx]["strip"])
+        if not path.exists():
+            repo_root = Path(__file__).resolve().parents[2]
+            alt_path = repo_root / "data" / "normalized" / path.name
+            if alt_path.exists():
+                path = alt_path
+
+        if not path.exists():
+            raise FileNotFoundError(
+                f"Normalized strip not found: {path}\n"
+                f"Expected file in data/normalized or a valid strip path in records."
+            )
+
         strip = np.load(str(path)).astype(np.float32)
 
         # Resize if spatial dims differ from expected
@@ -85,16 +131,12 @@ def build_dataloaders(
     with open(records_file) as f:
         all_records = json.load(f)
 
-    random.seed(seed)
-    random.shuffle(all_records)
-
-    n       = len(all_records)
-    n_train = int(n * train_ratio)
-    n_val   = int(n * val_ratio)
-
-    train_recs = all_records[:n_train]
-    val_recs   = all_records[n_train: n_train + n_val]
-    test_recs  = all_records[n_train + n_val:]
+    train_recs, val_recs, test_recs = subject_disjoint_split(
+        all_records,
+        train_ratio=train_ratio,
+        val_ratio=val_ratio,
+        seed=seed,
+    )
 
     print(f"  Dataset split — train: {len(train_recs)} | "
           f"val: {len(val_recs)} | test: {len(test_recs)}")

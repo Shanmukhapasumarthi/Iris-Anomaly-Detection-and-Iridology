@@ -21,20 +21,22 @@ import numpy as np
 import torch
 
 ROOT = Path(__file__).resolve().parent
+REPO_ROOT = ROOT.parent
 if (ROOT / "segmentation.py").is_file():
     pass
 else:
     ROOT = ROOT.parent
+sys.path.insert(0, str(REPO_ROOT))
 sys.path.insert(0, str(ROOT))
 
-from autoencoder    import ConvAutoencoder
-from vae            import ConvVAE
-from patch_ae       import PatchCoreDetector
-from dataset        import build_dataloaders
-from config         import get_device
-from metrics        import full_evaluation, threshold_sweep, youden_threshold
-from threshold      import select_threshold
-from visualize      import (
+from src.Models.autoencoder    import ConvAutoencoder
+from src.Models.vae            import ConvVAE
+from src.Models.patch_ae       import PatchCoreDetector
+from src.utils.dataset        import build_dataloaders, subject_disjoint_split
+from src.utils.config         import get_device
+from src.evaluation.metrics        import full_evaluation, threshold_sweep, youden_threshold
+from src.evaluation.threshold      import select_threshold
+from src.evaluation.visualize      import (
     plot_roc_curve, plot_pr_curve, plot_score_distribution,
     plot_confusion_matrix, plot_sigma_sweep,
     error_map_to_heatmap, backproject_heatmap,
@@ -107,19 +109,18 @@ def score_loader(model, loader, model_type: str,
 
 def load_gt_labels(gt_file: Optional[Path],
                     records,
-                    scores: np.ndarray) -> np.ndarray:
+                    scores: np.ndarray) -> Optional[np.ndarray]:
     if gt_file and gt_file.exists():
         with open(gt_file) as f:
             gt = json.load(f)   # {path: 0|1}
         labels = np.array([gt.get(r.get("original", ""), 0)
                             for r in records], dtype=int)
         print(f"  GT labels loaded — anomalous: {labels.sum()} / {len(labels)}")
-    else:
-        # Pseudo-labels: top 10% = anomalous
-        print("  No GT labels — using top-10% pseudo-anomalies.")
-        thr    = np.percentile(scores, 90)
-        labels = (scores >= thr).astype(int)
-    return labels
+        return labels
+
+    print("  No GT labels provided: skipping AUROC/AUPRC and pseudo-label evaluation.")
+    print("  Results below are unsupervised threshold-only metrics.")
+    return None
 
 
 # ──────────────────────────────────────────────
@@ -130,9 +131,9 @@ def main():
     parser = argparse.ArgumentParser(description="Iris Anomaly — Evaluate")
     parser.add_argument("--model",      default="vae",
                         choices=["ae", "vae", "patchcore"])
-    parser.add_argument("--latent-dim", type=int,   default=256,
+    parser.add_argument("--latent-dim", type=int,   default=64,
                         dest="latent_dim")
-    parser.add_argument("--batch-size", type=int,   default=32,
+    parser.add_argument("--batch-size", type=int,   default=16,
                         dest="batch_size")
     parser.add_argument("--workers",    type=int,   default=4)
     parser.add_argument("--threshold",  type=float, default=None,
@@ -166,10 +167,13 @@ def main():
     print("  Scoring test set …")
     test_scores = score_loader(model, test_loader, model_type, device)
 
-    n_test  = len(test_scores)
-    n_total = len(all_records)
-    n_val   = int(n_total * 0.10)
-    test_records = all_records[int(n_total * 0.80) + n_val:]
+    _, _, test_records = subject_disjoint_split(
+        all_records,
+        train_ratio=0.80,
+        val_ratio=0.10,
+        seed=42,
+    )
+    n_test = len(test_scores)
 
     # ── Threshold ──
     if args.threshold:
@@ -181,6 +185,28 @@ def main():
 
     # ── Labels ──
     labels = load_gt_labels(args.gt, test_records, test_scores)
+
+    if labels is None:
+        flagged = int((test_scores >= threshold).sum())
+        print(f"\n{'─'*45}")
+        print(f"  Threshold only evaluation")
+        print(f"  Flagged samples: {flagged} / {n_test}")
+        print(f"  Threshold      : {threshold:.5f}")
+        print(f"{'─'*45}")
+
+        summary = {
+            "model": model_type,
+            "threshold": float(threshold),
+            "n_test": int(n_test),
+            "flagged_samples": int(flagged),
+            "gt_available": False,
+            "note": "No ground-truth labels were provided; AUROC/AUPRC were not computed."
+        }
+        with open(EVAL_DIR / "summary.json", "w") as f:
+            json.dump(summary, f, indent=2)
+        print(f"\n  All evaluation outputs → {EVAL_DIR}/")
+        print("✓ Threshold-only evaluation complete.")
+        return
 
     # ── Metrics ──
     results = full_evaluation(labels, test_scores, threshold)
@@ -225,6 +251,7 @@ def main():
         "n_normal":       int((labels == 0).sum()),
         "n_anomalous":    int((labels == 1).sum()),
         "confusion_matrix": results["cm"],
+        "gt_available":   True,
     }
     with open(EVAL_DIR / "summary.json", "w") as f:
         json.dump(summary, f, indent=2)

@@ -1,15 +1,3 @@
-"""
-src/evaluation/visualize.py
-All visualisation functions:
-  - plot_roc_curve
-  - plot_pr_curve
-  - plot_score_distribution
-  - plot_confusion_matrix
-  - plot_training_curves
-  - plot_sigma_sweep
-  - error_map_to_heatmap
-  - backproject_heatmap
-"""
 
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple

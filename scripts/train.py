@@ -32,24 +32,26 @@ from torch.optim import AdamW
 from torch.optim.lr_scheduler import CosineAnnealingLR
 
 ROOT = Path(__file__).resolve().parent
+REPO_ROOT = ROOT.parent
+sys.path.insert(0, str(REPO_ROOT))
 sys.path.insert(0, str(ROOT))
 
-from autoencoder import ConvAutoencoder
-from vae import ConvVAE
-from patch_ae import PatchCoreDetector
-from trainer import train_autoencoder, train_vae
-from dataset import build_dataloaders
-from config import load_config, get_device
-from visualize import plot_training_curves
+from src.Models.autoencoder import ConvAutoencoder
+from src.Models.vae import ConvVAE
+from src.Models.patch_ae import PatchCoreDetector
+from src.training.trainer import train_autoencoder, train_vae
+from src.utils.dataset import build_dataloaders
+from src.utils.config import load_config, get_device
+from src.evaluation.visualize import plot_training_curves
 
 
 # ──────────────────────────────────────────────
 # Paths
 # ──────────────────────────────────────────────
-NORM_REC_FILE  = ROOT / "data/normalized/normalization_records.json"
-CHECKPOINT_DIR = ROOT / "checkpoints"
-LOG_DIR        = ROOT / "logs"
-OUTPUT_IMG_DIR = ROOT / "outputs" / "images"          # ← NEW dedicated image folder
+NORM_REC_FILE  = REPO_ROOT / "data" / "normalized" / "normalization_records.json"
+CHECKPOINT_DIR = REPO_ROOT / "checkpoints"
+LOG_DIR        = REPO_ROOT / "logs"
+OUTPUT_IMG_DIR = REPO_ROOT / "outputs" / "images"          # ← NEW dedicated image folder
 
 
 def _ensure_dirs():
@@ -468,13 +470,13 @@ def main():
                         help="Model to train (default: mae — ViT-MAE, recommended)")
 
     # ── Shared hyper-params ───────────────────
-    parser.add_argument("--epochs",     type=int,   default=150)
+    parser.add_argument("--epochs",     type=int,   default=100)
     parser.add_argument("--lr",         type=float, default=1e-4)
-    parser.add_argument("--batch-size", type=int,   default=32, dest="batch_size")
+    parser.add_argument("--batch-size", type=int,   default=16, dest="batch_size")
     parser.add_argument("--workers",    type=int,   default=4)
 
     # ── CNN AE / VAE ─────────────────────────
-    parser.add_argument("--latent-dim", type=int,   default=256, dest="latent_dim")
+    parser.add_argument("--latent-dim", type=int,   default=64, dest="latent_dim")
     parser.add_argument("--gamma",      type=float, default=1.0,
                         help="KL weight (VAE only)")
     parser.add_argument("--warmup",     type=int,   default=10)

@@ -1,15 +1,3 @@
-"""
-src/training/trainer.py
-Unified trainer for ConvAutoencoder and ConvVAE.
-  - Epoch loop with train / val
-  - Gradient clipping
-  - Warmup-cosine LR schedule
-  - Best-checkpoint saving (by val loss)
-  - Reconstruction image logging every N epochs
-  - Training curve saved to outputs/images/
-  - Returns loss history dict
-"""
-
 import matplotlib
 matplotlib.use("Agg")   # non-interactive backend — must be set before pyplot import
 
@@ -24,8 +12,8 @@ from torch.optim import AdamW          # changed: Adam → AdamW (matches train.
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
-from losses    import ReconstructionLoss, vae_loss
-from scheduler import build_scheduler
+from src.training.losses import ReconstructionLoss, vae_loss
+from src.training.scheduler import build_scheduler
 
 
 # ──────────────────────────────────────────────

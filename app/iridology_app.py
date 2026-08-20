@@ -1,11 +1,4 @@
 """
-iridology_app.py  v2
-Iridology health analysis server — port 8001.
-New in v2:
-  POST /analyze/llm  — calls Anthropic API to generate
-                       detailed disease descriptions for
-                       detected organ zones and iris patterns.
-
 Run:
     python iridology_app.py
 Open: http://localhost:8001
@@ -32,15 +25,15 @@ from fastapi.responses import HTMLResponse, JSONResponse
 from pydantic import BaseModel
 from skimage.metrics import structural_similarity as ssim
 
-ROOT = Path(__file__).resolve().parent
+ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
-from config        import get_device
-from normalization import apply_clahe, rubber_sheet_normalize
-from threshold     import select_threshold
-from iridology_zones import get_zones, ORGAN_INFO, IRIS_PATTERNS, get_risk_level
-from zone_analyzer   import full_zone_analysis
-from healthreport   import generate_report
+from src.utils.config        import get_device
+from src.preprocessing.normalization import apply_clahe, rubber_sheet_normalize
+from src.evaluation.threshold     import select_threshold
+from src.iridology.iridology_zones import get_zones, ORGAN_INFO, IRIS_PATTERNS, get_risk_level
+from src.iridology.zone_analyzer   import full_zone_analysis
+from src.iridology.healthreport   import generate_report
 #from llm_analysis    import generate_disease_analysis, format_analysis_for_display
 
 CHECKPOINT_DIR   = ROOT / "checkpoints"
@@ -60,7 +53,7 @@ _last_report: dict = {}
 
 def _load_model(model_type, device):
     if model_type == "mae":
-        from train import ViTMAE
+        from scripts.train import ViTMAE
         p    = CHECKPOINT_DIR / "best_mae.pth"
         if not p.exists():
             raise FileNotFoundError(f"Checkpoint not found: {p}")
@@ -71,14 +64,14 @@ def _load_model(model_type, device):
         print(f"  [iridology] ViT-MAE loaded epoch={ckpt.get('epoch','?')}")
         return model
     elif model_type == "ae":
-        from autoencoder import ConvAutoencoder
+        from src.Models.autoencoder import ConvAutoencoder
         ckpt  = torch.load(CHECKPOINT_DIR/"best_ae.pth",
                            map_location=device, weights_only=False)
         model = ConvAutoencoder(256).to(device)
         model.load_state_dict(ckpt["state"]); model.eval()
         return model
     else:
-        from vae import ConvVAE
+        from src.Models.vae import ConvVAE
         ckpt  = torch.load(CHECKPOINT_DIR/"best_vae.pth",
                            map_location=device, weights_only=False)
         model = ConvVAE(256).to(device)
@@ -89,7 +82,7 @@ def _load_model(model_type, device):
 def _fit_threshold(model, device):
     if not NORM_REC_FILE.exists():
         return 0.05
-    from dataset import build_dataloaders
+    from src.utils.dataset import build_dataloaders
     _, val_loader, _ = build_dataloaders(
         records_file=NORM_REC_FILE, batch_size=32, num_workers=0)
     scores = []
@@ -129,7 +122,7 @@ def _decode(data):
     return img
 
 def _extract_strip(img):
-    from segmentation import detect_pupil, detect_iris
+    from src.preprocessing.segmentation import detect_pupil, detect_iris
     gray  = _to_gray(img)
     pupil = detect_pupil(gray)
     if pupil is None: raise ValueError("Pupil not detected.")

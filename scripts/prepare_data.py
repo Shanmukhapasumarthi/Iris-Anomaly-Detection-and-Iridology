@@ -168,7 +168,7 @@ def run_normalization():
     from pathlib import Path
     from tqdm import tqdm
     import cv2
-    from normalization import (
+    from src.preprocessing.normalization import (
         rubber_sheet_normalize, strip_quality_ok
     )
 

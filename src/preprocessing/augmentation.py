@@ -1,11 +1,3 @@
-"""
-src/preprocessing/augmentation.py
-Albumentations augmentation pipelines for iris strips.
-Training: flips, brightness/contrast, slight rotation, Gaussian noise,
-          coarse dropout (simulates occlusion).
-Inference: identity (no augmentation).
-"""
-
 import cv2
 import numpy as np
 import albumentations as A

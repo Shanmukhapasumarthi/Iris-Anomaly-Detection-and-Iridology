@@ -1,10 +1,3 @@
-"""
-src/training/scheduler.py
-Learning-rate schedules:
-  - warmup_cosine_lambda : linear warmup then cosine annealing
-  - build_scheduler      : factory that wraps any optimizer
-"""
-
 import math
 from typing import Callable
 

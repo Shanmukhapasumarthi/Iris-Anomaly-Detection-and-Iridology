@@ -1,9 +1,3 @@
-"""
-src/preprocessing/normalization.py
-Daugman rubber-sheet polar normalization.
-Maps annular iris region → fixed 64×512 rectangular strip.
-"""
-
 from typing import Tuple
 
 import cv2

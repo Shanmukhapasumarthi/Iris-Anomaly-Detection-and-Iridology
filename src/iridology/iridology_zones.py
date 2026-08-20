@@ -1,17 +1,3 @@
-"""
-iridology_zones.py
-Iridology zone definitions based on the standard iridology chart.
-Maps regions of the 64x512 rubber-sheet iris strip to organs.
-
-The iris strip (64 rows x 512 cols) after rubber-sheet normalization:
-  - Rows  : radial direction, row 0 = pupil edge, row 63 = iris outer edge
-  - Cols  : angular direction, 0 = 3 o'clock, increases counter-clockwise
-
-Zone mapping follows standard iridology clock positions:
-  Left eye  : mirrored from right eye for organs that have sides
-  Right eye : standard chart orientation
-"""
-
 # ──────────────────────────────────────────────
 # Radial zones (rows 0-63)
 # Inner zones = closer to pupil = digestive core

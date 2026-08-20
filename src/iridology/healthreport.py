@@ -1,11 +1,5 @@
-"""
-health_report.py
-Generates a structured iridology health report from zone analysis results.
-Produces both a dict (for API) and a formatted text summary.
-"""
-
 from typing import Dict
-from iridology_zones import IRIS_PATTERNS
+from src.iridology.iridology_zones import IRIS_PATTERNS
 
 
 DISCLAIMER = (

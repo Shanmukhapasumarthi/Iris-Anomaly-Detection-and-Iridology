@@ -1,9 +1,3 @@
-"""
-src/preprocessing/segmentation.py
-Iris segmentation module — detects pupil & iris boundaries,
-builds annular mask, handles eyelid occlusion.
-"""
-
 from pathlib import Path
 from typing import Optional, Tuple
 

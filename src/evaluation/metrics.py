@@ -1,12 +1,3 @@
-"""
-src/evaluation/metrics.py
-Evaluation metrics for anomaly detection:
-  - AUROC, AUPRC, F1 @ threshold
-  - Youden's J threshold selection
-  - μ + k·σ threshold sweep
-  - Full classification report
-"""
-
 from typing import Dict, List, Optional, Tuple
 
 import numpy as np
@@ -102,3 +93,40 @@ def full_evaluation(labels: np.ndarray,
         "fpr":        fpr.tolist(),
         "tpr":        tpr.tolist(),
     }
+
+
+# ──────────────────────────────────────────────
+# Printing
+# ──────────────────────────────────────────────
+
+def print_metrics(labels: np.ndarray,
+                  scores: np.ndarray,
+                  threshold: Optional[float] = None) -> Dict:
+    """
+    Print AUROC, AUPRC, F1, threshold, the μ + k·σ sweep,
+    confusion matrix, and classification report.
+    Operates on YOUR real labels/scores. Returns the results dict.
+    """
+    results = full_evaluation(labels, scores, threshold)
+
+    print("=" * 45)
+    print("EVALUATION METRICS")
+    print("=" * 45)
+    print(f"AUROC     : {results['auroc']}")
+    print(f"AUPRC     : {results['auprc']}")
+    print(f"F1        : {results['f1']}")
+    print(f"threshold : {results['threshold']}"
+          f"{'  (Youden J)' if threshold is None else ''}")
+
+    print("\nμ + kσ threshold sweep:")
+    print(f"{'k':>5} {'threshold':>12} {'F1':>10}")
+    for k, r in threshold_sweep(labels, scores).items():
+        print(f"{k:>5} {r['threshold']:>12.4f} {r['f1']:>10.4f}")
+
+    print("\nConfusion matrix [ [TN FP] [FN TP] ]:")
+    print(np.array(results["cm"]))
+
+    print("\nClassification report:")
+    print(results["report"])
+
+    return results

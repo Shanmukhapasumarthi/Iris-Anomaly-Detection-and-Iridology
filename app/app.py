@@ -1,11 +1,4 @@
 """
-app.py  —  FastAPI iris anomaly detection server v2
-GET  /          → browser UI
-GET  /health    → model status
-POST /predict   → strip + reconstruction + error map + anomaly score
-GET  /results   → evaluate.py summary
-POST /threshold/update → refit threshold
-
 Run:
     pip install fastapi uvicorn python-multipart
     python app.py
@@ -31,7 +24,7 @@ from fastapi import FastAPI, File, HTTPException, Query, UploadFile
 from fastapi.responses import HTMLResponse, JSONResponse
 from pydantic import BaseModel
 
-ROOT = Path(__file__).resolve().parent
+ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
 from config        import get_device

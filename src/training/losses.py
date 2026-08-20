@@ -1,11 +1,3 @@
-"""
-src/training/losses.py
-Loss functions:
-  - SSIMLoss          : differentiable SSIM (1 - SSIM)
-  - ReconstructionLoss: α·MSE + β·SSIM
-  - vae_loss          : ReconstructionLoss + γ·KL
-"""
-
 from typing import Dict, Tuple
 
 import torch

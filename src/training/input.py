@@ -1,30 +1,3 @@
-"""
-scripts/input.py
-Input pipeline utility for the iris anomaly detection project.
-
-Handles three input modes:
-  1. Single image  — one raw iris image file  (jpg / png / bmp)
-  2. Directory     — folder of raw iris images
-  3. Records file  — existing normalization_records.json
-
-In modes 1 & 2 the image(s) are normalised on-the-fly (rubber-sheet
-unwrapping is skipped here; images are assumed to already be iris strips).
-CLAHE enhancement and resizing are applied to match the training pipeline.
-
-Usage:
-    # Single image → tensor ready for inference
-    python input.py --image path/to/iris.png
-
-    # Directory of images → tensor batch
-    python input.py --dir path/to/iris_folder/
-
-    # Existing records file → DataLoaders (same as train.py)
-    python input.py --records data/normalized/normalization_records.json
-
-    # Override strip size or batch size
-    python input.py --image iris.png --strip-h 64 --strip-w 512 --batch-size 8
-"""
-
 import argparse
 import json
 import sys
@@ -38,9 +11,9 @@ from torch.utils.data import DataLoader, Dataset
 ROOT = Path(__file__).resolve().parent
 sys.path.insert(0, str(ROOT))
 
-from config      import load_config, get_device
-from normalization import apply_clahe
-from augmentation  import get_val_transform
+from src.utils.config import load_config, get_device
+from src.preprocessing.normalization import apply_clahe
+from src.preprocessing.augmentation import get_val_transform
 
 # ──────────────────────────────────────────────
 # Constants (match dataset.py defaults)

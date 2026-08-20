@@ -1,13 +1,7 @@
-"""
-zone_analyzer.py
-Analyses reconstruction error map zone by zone to produce
-per-organ anomaly scores based on iridology zone mapping.
-"""
-
 import numpy as np
 from typing import Dict, Tuple
 
-from iridology_zones import (
+from src.iridology.iridology_zones import (
     RADIAL_ZONES, ORGAN_INFO, IRIS_PATTERNS,
     get_zones, get_risk_level
 )

@@ -1,11 +1,3 @@
-"""
-src/utils/config.py
-Central project configuration — loads from YAML files
-(configs/training/default.yaml, configs/model/vae.yaml)
-and exposes a typed Config dataclass.
-Falls back to sensible defaults if YAML files are absent.
-"""
-
 from __future__ import annotations
 
 import os
@@ -33,7 +25,7 @@ class DataConfig:
     strip_w:          int  = 512
     train_ratio:      float = 0.80
     val_ratio:        float = 0.10
-    batch_size:       int   = 32
+    batch_size:       int   = 16
     num_workers:      int   = 4
     use_clahe:        bool  = True
 
@@ -41,15 +33,15 @@ class DataConfig:
 @dataclass
 class ModelConfig:
     model_type:  str = "vae"      # "ae" | "vae" | "patchcore"
-    latent_dim:  int = 256
+    latent_dim:  int = 64
     coreset_size: int = 2000       # PatchCore only
 
 
 @dataclass
 class TrainingConfig:
-    epochs:        int   = 150
+    epochs:        int   = 100
     lr:            float = 1e-4
-    weight_decay:  float = 1e-5
+    weight_decay:  float = 1e-4
     warmup_epochs: int   = 10
     grad_clip:     float = 1.0
     alpha_mse:     float = 0.5
